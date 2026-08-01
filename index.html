@@ -7,7 +7,6 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <link rel="stylesheet" href="./style.css">
 </head>
 
@@ -16,553 +15,241 @@
 <div class="container">
 
 <header>
-
     <div class="logo">
         <i class="fas fa-bolt"></i>
         <span>Energy Usage Monitoring App</span>
     </div>
-
     <div class="user-actions">
-
         <button class="btn btn-outline" id="settings-btn">
             <i class="fas fa-cog"></i>
             Settings
         </button>
-
         <button class="btn btn-primary" id="add-device-btn">
             <i class="fas fa-plus"></i>
             Add Device
         </button>
-
     </div>
-
 </header>
 
 <div class="dashboard">
-<!-- ===================== -->
-<!-- ANALYTICS DASHBOARD -->
-<!-- ===================== -->
-<div class="dashboard">
+    <!-- Current Usage -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Current Usage</div>
+            <div class="card-icon icon-primary"><i class="fas fa-bolt"></i></div>
+        </div>
+        <div class="stat-value" id="current-usage">1.25 kW</div>
+        <div class="stat-label">Right Now</div>
+    </div>
+
+    <!-- Today's Usage -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Today's Usage</div>
+            <div class="card-icon icon-secondary"><i class="fas fa-chart-line"></i></div>
+        </div>
+        <div class="stat-value" id="today-usage">15.8 kWh</div>
+        <div class="stat-label">So Far Today</div>
+    </div>
+
+    <!-- Monthly Cost -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Monthly Cost</div>
+            <div class="card-icon icon-success"><span style="font-size:22px;font-weight:bold;">₱</span></div>
+        </div>
+        <div class="stat-value" id="monthly-cost">₱42.50</div>
+        <div class="stat-label">Projected for this month</div>
+    </div>
+
+    <!-- Carbon -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Carbon Footprint</div>
+            <div class="card-icon icon-warning"><i class="fas fa-leaf"></i></div>
+        </div>
+        <div class="stat-value" id="carbon-footprint">125 kg</div>
+        <div class="stat-label">CO₂ emissions this month</div>
+    </div>
 
     <!-- Efficiency Score -->
     <div class="card">
         <div class="card-header">
             <div class="card-title">Efficiency Score</div>
-            <div class="card-icon icon-success">
-                <i class="fas fa-check-circle"></i>
-            </div>
+            <div class="card-icon icon-success"><i class="fas fa-check-circle"></i></div>
         </div>
-        <div class="stat-value" id="efficiency-score">
-            --%
-        </div>
-        <div class="stat-label">
-            System Performance
-        </div>
-    </div>
-
-    <!-- Usage Trend -->
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Usage Trend</div>
-            <div class="card-icon icon-primary">
-                <i class="fas fa-chart-area"></i>
-            </div>
-        </div>
-        <div class="stat-value" id="usage-trend">
-            -- kWh
-        </div>
-        <div class="stat-label">
-            Compared to last reading
-        </div>
+        <div class="stat-value" id="efficiency-score">--%</div>
+        <div class="stat-label">System Performance</div>
     </div>
 
     <!-- Highest Consumer -->
     <div class="card">
         <div class="card-header">
             <div class="card-title">Highest Consumer</div>
-            <div class="card-icon icon-danger" style="color: #e74c3c;">
-                <i class="fas fa-arrow-trend-up"></i>
-            </div>
+            <div class="card-icon icon-danger" style="color: #e74c3c;"><i class="fas fa-arrow-trend-up"></i></div>
         </div>
-        <div class="stat-value" id="highest-device" style="font-size: 1.2rem;">
-            Loading...
-        </div>
-        <div class="stat-label">
-            Monitor closely
-        </div>
+        <div class="stat-value" id="highest-device" style="font-size: 1.2rem;">Loading...</div>
+        <div class="stat-label">Monitor closely</div>
     </div>
-
+    
     <!-- Lowest Consumer -->
     <div class="card">
         <div class="card-header">
             <div class="card-title">Lowest Consumer</div>
-            <div class="card-icon icon-success">
-                <i class="fas fa-arrow-trend-down"></i>
-            </div>
+            <div class="card-icon icon-success"><i class="fas fa-arrow-trend-down"></i></div>
         </div>
-        <div class="stat-value" id="lowest-device" style="font-size: 1.2rem;">
-            Loading...
-        </div>
-        <div class="stat-label">
-            Most efficient device
-        </div>
+        <div class="stat-value" id="lowest-device" style="font-size: 1.2rem;">Loading...</div>
+        <div class="stat-label">Most efficient device</div>
     </div>
 
     <!-- Average Usage -->
     <div class="card">
         <div class="card-header">
             <div class="card-title">Average Usage</div>
-            <div class="card-icon icon-secondary">
-                <i class="fas fa-calculator"></i>
-            </div>
+            <div class="card-icon icon-secondary"><i class="fas fa-calculator"></i></div>
         </div>
-        <div class="stat-value" id="average-usage">
-            -- kWh
-        </div>
-        <div class="stat-label">
-            Per active device
-        </div>
+        <div class="stat-value" id="average-usage">-- kWh</div>
+        <div class="stat-label">Per active device</div>
     </div>
-
-    <!-- Daily Report Summary -->
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Daily Report</div>
-            <div class="card-icon icon-primary">
-                <i class="fas fa-file-alt"></i>
-            </div>
-        </div>
-        <div class="stat-value" id="daily-report" style="font-size: 1.1rem; line-height: 1.4; padding-top: 5px;">
-            Analyzing...
-        </div>
-        <div class="stat-label">
-            System overview
-        </div>
-    </div>
-    <!-- Current Usage -->
-    <div class="card">
-
-        <div class="card-header">
-
-            <div class="card-title">
-                Current Usage
-            </div>
-
-            <div class="card-icon icon-primary">
-                <i class="fas fa-bolt"></i>
-            </div>
-
-        </div>
-
-        <div class="stat-value" id="current-usage">
-            1.25 kW
-        </div>
-
-        <div class="stat-label">
-            Right Now
-        </div>
-
-        <div class="stat-change change-up">
-            <i class="fas fa-arrow-up"></i>
-            12% from yesterday
-        </div>
-
-    </div>
-
-    <!-- Today's Usage -->
-    <div class="card">
-
-        <div class="card-header">
-
-            <div class="card-title">
-                Today's Usage
-            </div>
-
-            <div class="card-icon icon-secondary">
-                <i class="fas fa-chart-line"></i>
-            </div>
-
-        </div>
-
-        <div class="stat-value" id="today-usage">
-            15.8 kWh
-        </div>
-
-        <div class="stat-label">
-            So Far Today
-        </div>
-
-        <div class="stat-change change-down">
-            <i class="fas fa-arrow-down"></i>
-            5% from yesterday
-        </div>
-
-    </div>
-
-    <!-- Monthly Cost -->
-    <div class="card">
-
-        <div class="card-header">
-
-            <div class="card-title">
-                Monthly Cost
-            </div>
-
-            <div class="card-icon icon-success">
-                <span style="font-size:22px;font-weight:bold;">₱</span>
-            </div>
-
-        </div>
-
-        <div class="stat-value" id="monthly-cost">
-            ₱42.50
-        </div>
-
-        <div class="stat-label">
-            Projected for this month
-        </div>
-
-        <div class="stat-change change-up">
-            <i class="fas fa-arrow-up"></i>
-            8% from last month
-        </div>
-
-    </div>
-
-    <!-- Carbon -->
-    <div class="card">
-
-        <div class="card-header">
-
-            <div class="card-title">
-                Carbon Footprint
-            </div>
-
-            <div class="card-icon icon-warning">
-                <i class="fas fa-leaf"></i>
-            </div>
-
-        </div>
-
-        <div class="stat-value" id="carbon-footprint">
-            125 kg
-        </div>
-
-        <div class="stat-label">
-            CO₂ emissions this month
-        </div>
-
-        <div class="stat-change change-down">
-            <i class="fas fa-arrow-down"></i>
-            15% from last month
-        </div>
-
-    </div>
-
 </div>
+
+<!-- Smart Recommendations -->
+<div class="recommendations-container" style="margin: 20px 0;">
+    <div class="card" style="width: 100%;">
+        <div class="card-header">
+            <div class="card-title">Smart Recommendations</div>
+            <div class="card-icon icon-warning"><i class="fas fa-lightbulb"></i></div>
+        </div>
+        <div style="padding: 15px 20px;">
+            <ul id="recommendations" style="padding-left: 20px; line-height: 1.8; color: #555;">
+                <li>Analyzing system data to generate efficiency tips...</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
 <div class="charts-container">
-
     <div class="chart-card">
-
         <div class="chart-header">
-
-            <div class="chart-title">
-                Energy Consumption
-            </div>
-
+            <div class="chart-title">Energy Consumption</div>
             <div class="chart-actions">
                 <span class="chart-action active" data-period="day">Today</span>
                 <span class="chart-action" data-period="week">This Week</span>
                 <span class="chart-action" data-period="month">This Month</span>
             </div>
-
         </div>
-
         <div class="chart-container">
             <canvas id="consumption-chart"></canvas>
         </div>
-
     </div>
 
     <div class="chart-card">
-
         <div class="chart-header">
-            <div class="chart-title">
-                Usage by Device
-            </div>
+            <div class="chart-title">Usage by Device</div>
         </div>
-
         <div class="chart-container">
             <canvas id="device-chart"></canvas>
         </div>
-
     </div>
-
 </div>
 
 <div class="devices-list">
-
     <div class="devices-header">
-
-        <div class="devices-title">
-            Connected Devices
-        </div>
-
+        <div class="devices-title">Connected Devices</div>
         <div class="devices-filter">
-
             <select class="form-control" id="device-filter" style="width:auto;">
-
                 <option value="all">All Devices</option>
                 <option value="active">Active Only</option>
                 <option value="high-usage">High Usage</option>
-
             </select>
-
         </div>
-
     </div>
-
     <div id="devices-container">
         <!-- Devices generated by JavaScript -->
     </div>
-
 </div>
 
-<!-- ===================== -->
-<!-- ADD DEVICE MODAL -->
-<!-- ===================== -->
-
+<!-- Add Device Modal -->
 <div class="modal" id="add-device-modal">
-
     <div class="modal-content">
-
         <div class="modal-header">
-
-            <div class="modal-title">
-                Add New Device
-            </div>
-
-            <button class="close-modal">
-                &times;
-            </button>
-
+            <div class="modal-title">Add New Device</div>
+            <button class="close-modal">&times;</button>
         </div>
-
         <form id="add-device-form">
-
             <div class="form-group">
-
-                <label class="form-label" for="device-name">
-                    Device Name
-                </label>
-
-                <input
-                    type="text"
-                    class="form-control"
-                    id="device-name"
-                    required>
-
+                <label class="form-label" for="device-name">Device Name</label>
+                <input type="text" class="form-control" id="device-name" required>
             </div>
-
             <div class="form-group">
-
-                <label class="form-label" for="device-type">
-                    Device Type
-                </label>
-
-                <select
-                    class="form-control"
-                    id="device-type"
-                    required>
-
+                <label class="form-label" for="device-type">Device Type</label>
+                <select class="form-control" id="device-type" required>
                     <option value="">Select a type</option>
                     <option value="appliance">Home Appliance</option>
                     <option value="electronics">Electronics</option>
                     <option value="lighting">Lighting</option>
                     <option value="heating">Heating/Cooling</option>
                     <option value="other">Other</option>
-
                 </select>
-
             </div>
-
             <div class="form-group">
-
-                <label class="form-label" for="device-power">
-                    Power Rating (W)
-                </label>
-
-                <input
-                    type="number"
-                    class="form-control"
-                    id="device-power"
-                    min="1"
-                    required>
-
+                <label class="form-label" for="device-power">Power Rating (W)</label>
+                <input type="number" class="form-control" id="device-power" min="1" required>
             </div>
-
             <div class="form-actions">
-
-                <button
-                    type="button"
-                    class="btn btn-outline close-modal">
-
-                    Cancel
-
-                </button>
-
-                <button
-                    type="submit"
-                    class="btn btn-primary">
-
-                    Add Device
-
-                </button>
-
+                <button type="button" class="btn btn-outline close-modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Device</button>
             </div>
-
         </form>
-
     </div>
-
 </div>
-<!-- ===================== -->
-<!-- SETTINGS MODAL -->
-<!-- ===================== -->
 
+<!-- Settings Modal -->
 <div class="modal" id="settings-modal">
-
     <div class="modal-content">
-
         <div class="modal-header">
-
-            <div class="modal-title">
-                Settings
-            </div>
-
+            <div class="modal-title">Settings</div>
             <button class="close-modal">&times;</button>
-
         </div>
-
         <form id="settings-form">
-
             <div class="form-group">
-                <label class="form-label" for="energy-rate">
-                    Energy Rate (₱/kWh)
-                </label>
-
-                <input
-                    type="number"
-                    class="form-control"
-                    id="energy-rate"
-                    step="0.01"
-                    min="0.01"
-                    value="0.15"
-                    required>
+                <label class="form-label" for="energy-rate">Energy Rate (₱/kWh)</label>
+                <input type="number" class="form-control" id="energy-rate" step="0.01" min="0.01" value="0.15" required>
             </div>
-
             <div class="form-group">
-                <label class="form-label" for="carbon-intensity">
-                    Carbon Intensity (gCO₂/kWh)
-                </label>
-
-                <input
-                    type="number"
-                    class="form-control"
-                    id="carbon-intensity"
-                    min="1"
-                    value="450"
-                    required>
+                <label class="form-label" for="carbon-intensity">Carbon Intensity (gCO₂/kWh)</label>
+                <input type="number" class="form-control" id="carbon-intensity" min="1" value="450" required>
             </div>
-
             <div class="form-group">
-                <label class="form-label" for="budget-alert">
-                    Monthly Budget Alert (₱)
-                </label>
-
-                <input
-                    type="number"
-                    class="form-control"
-                    id="budget-alert"
-                    min="1"
-                    value="100"
-                    required>
+                <label class="form-label" for="budget-alert">Monthly Budget Alert (₱)</label>
+                <input type="number" class="form-control" id="budget-alert" min="1" value="100" required>
             </div>
-
             <div class="form-actions">
-
-                <button
-                    type="button"
-                    class="btn btn-outline close-modal">
-                    Cancel
-                </button>
-
-                <button
-                    type="submit"
-                    class="btn btn-primary">
-                    Save Settings
-                </button>
-
+                <button type="button" class="btn btn-outline close-modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Settings</button>
             </div>
-
         </form>
-
     </div>
-
 </div>
 
-<!-- ===================== -->
-<!-- CONTACT US -->
-<!-- ===================== -->
-
-<section class="contact-section">
-
-    <h2>Contact Us</h2>
-
-    <p style="margin-bottom:20px;">
-        Have questions or suggestions? Send us a message.
-    </p>
-
-    <form
-        action="https://formspree.io/f/xgogjoar"
-        method="POST">
-
-        <div class="form-group">
-            <input
-                class="form-control"
-                type="text"
-                name="name"
-                placeholder="Full Name"
-                required>
-        </div>
-
-        <div class="form-group">
-            <input
-                class="form-control"
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                required>
-        </div>
-
-        <div class="form-group">
-            <textarea
-                class="form-control"
-                name="message"
-                rows="6"
-                placeholder="Write your message here..."
-                required></textarea>
-        </div>
-
-        <button
-            class="btn btn-primary"
-            type="submit">
-            <i class="fas fa-paper-plane"></i>
-            Send Message
+<!-- Data Management -->
+<section class="data-section" style="padding: 20px; text-align: center; margin-bottom: 30px;">
+    <hr style="border: 1px solid #eee; margin-bottom: 20px;">
+    <h3 style="margin-bottom: 15px; color: #555;">Data Management</h3>
+    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <button class="btn btn-danger" onclick="resetEnergyMonitor()">
+            <i class="fas fa-trash-alt"></i> Factory Reset
         </button>
-
-    </form>
-
+        <button class="btn btn-secondary" onclick="exportEnergyData()">
+            <i class="fas fa-file-csv"></i> Export Data
+        </button>
+        <button class="btn btn-primary" onclick="backupEnergyData()">
+            <i class="fas fa-download"></i> Backup Config
+        </button>
+        <button class="btn btn-outline" onclick="toggleEnergyTheme()">
+            <i class="fas fa-moon"></i> Toggle Theme
+        </button>
+    </div>
 </section>
 
 <footer>
@@ -572,7 +259,7 @@
     </p>
 </footer>
 
+</div>
 <script src="./script.js"></script>
-
 </body>
 </html>
