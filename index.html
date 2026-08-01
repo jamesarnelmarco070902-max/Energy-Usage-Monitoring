@@ -39,7 +39,106 @@
 </header>
 
 <div class="dashboard">
+<!-- ===================== -->
+<!-- ANALYTICS DASHBOARD -->
+<!-- ===================== -->
+<div class="dashboard">
 
+    <!-- Efficiency Score -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Efficiency Score</div>
+            <div class="card-icon icon-success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="efficiency-score">
+            --%
+        </div>
+        <div class="stat-label">
+            System Performance
+        </div>
+    </div>
+
+    <!-- Usage Trend -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Usage Trend</div>
+            <div class="card-icon icon-primary">
+                <i class="fas fa-chart-area"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="usage-trend">
+            -- kWh
+        </div>
+        <div class="stat-label">
+            Compared to last reading
+        </div>
+    </div>
+
+    <!-- Highest Consumer -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Highest Consumer</div>
+            <div class="card-icon icon-danger" style="color: #e74c3c;">
+                <i class="fas fa-arrow-trend-up"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="highest-device" style="font-size: 1.2rem;">
+            Loading...
+        </div>
+        <div class="stat-label">
+            Monitor closely
+        </div>
+    </div>
+
+    <!-- Lowest Consumer -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Lowest Consumer</div>
+            <div class="card-icon icon-success">
+                <i class="fas fa-arrow-trend-down"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="lowest-device" style="font-size: 1.2rem;">
+            Loading...
+        </div>
+        <div class="stat-label">
+            Most efficient device
+        </div>
+    </div>
+
+    <!-- Average Usage -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Average Usage</div>
+            <div class="card-icon icon-secondary">
+                <i class="fas fa-calculator"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="average-usage">
+            -- kWh
+        </div>
+        <div class="stat-label">
+            Per active device
+        </div>
+    </div>
+
+    <!-- Daily Report Summary -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Daily Report</div>
+            <div class="card-icon icon-primary">
+                <i class="fas fa-file-alt"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="daily-report" style="font-size: 1.1rem; line-height: 1.4; padding-top: 5px;">
+            Analyzing...
+        </div>
+        <div class="stat-label">
+            System overview
+        </div>
+    </div>
     <!-- Current Usage -->
     <div class="card">
 
