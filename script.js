@@ -8,7 +8,7 @@ const APP_CONFIG = {
     storageKey: "energy-monitor-data-v3",
     settingsKey: "energy-monitor-settings-v3",
     statsInterval: 1000,
-    version: "3.0.4"
+    version: "3.0.5"
 };
 
 const Utils = {
@@ -157,12 +157,10 @@ class EnergyMonitor {
                 return;
             }
 
-            // Universal binding for chart period buttons regardless of class names used in HTML
             const chartAction = e.target.closest(".chart-action") || 
                                 (e.target.tagName === "BUTTON" && ["today", "week", "month", "day", "this week", "this month"].includes(e.target.textContent.toLowerCase().trim()) ? e.target : null);
             
             if (chartAction) {
-                // Find period type based on dataset or text content fallback
                 let periodVal = chartAction.dataset.period;
                 if (!periodVal) {
                     const txt = chartAction.textContent.toLowerCase();
@@ -171,7 +169,6 @@ class EnergyMonitor {
                     else periodVal = "day";
                 }
 
-                // Update active states on buttons
                 const parentContainer = chartAction.parentElement;
                 if (parentContainer) {
                     parentContainer.querySelectorAll("button").forEach(btn => btn.classList.remove("active"));
@@ -602,21 +599,43 @@ window.exportEnergyData = () => {
     dlAnchor.remove();
 };
 window.backupEnergyData = () => {
+    // Organized, non-technical, self-explanatory export format with human-readable labels
+    const rawDevices = window.app?.devices || [];
+    const humanReadableDevices = rawDevices.map(d => {
+        const totalSecs = d.runtimeSeconds || 0;
+        const hours = Math.floor(totalSecs / 3600);
+        const minutes = Math.floor((totalSecs % 3600) / 60);
+        
+        return {
+            "Device_Name": d.name,
+            "Category": d.type,
+            "Power_Consumption_Watts": d.power,
+            "Is_Currently_Turned_On": d.status ? "Yes (Active)" : "No (Paused/Off)",
+            "Total_Energy_Used_kWh": Number(d.usage.toFixed(4)),
+            "Total_Active_Time": `${hours} hours and ${minutes} minutes`
+        };
+    });
+
+    const settings = window.app?.settings || DEFAULT_SETTINGS;
     const backup = {
-        app: "Energy Monitor",
-        version: APP_CONFIG.version,
-        timestamp: new Date().toLocaleString(),
-        settings: window.app?.settings,
-        devices: window.app?.devices
+        "App_Name": "Energy Usage Monitoring App",
+        "Backup_Date_And_Time": new Date().toLocaleString(),
+        "App_Version": APP_CONFIG.version,
+        "User_Settings": {
+            "Electricity_Rate_Per_kWh": `₱${settings.energyRate}`,
+            "Target_Monthly_Budget": `₱${settings.monthlyBudget}`
+        },
+        "My_Appliances_And_Devices": humanReadableDevices
     };
-    const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
+
+    const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 4));
     const dlAnchor = document.createElement('a');
     dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", "energy_monitor_backup.txt");
+    dlAnchor.setAttribute("download", "my_energy_monitor_backup.txt");
     document.body.appendChild(dlAnchor);
     dlAnchor.click();
     dlAnchor.remove();
-    window.app?.showNotification("Backup saved as a text file for Android!", "success");
+    window.app?.showNotification("Backup saved successfully with clear, easy-to-read labels!", "success");
 };
 window.toggleEnergyTheme = () => {
     const current = document.documentElement.getAttribute("data-theme") || "light";
