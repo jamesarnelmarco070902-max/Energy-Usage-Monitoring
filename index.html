@@ -38,8 +38,8 @@
             <div class="card-title">Current Usage</div>
             <div class="card-icon icon-primary"><i class="fas fa-bolt"></i></div>
         </div>
-        <div class="stat-value" id="current-usage">1.25 kW</div>
-        <div class="stat-label">Right Now</div>
+        <div class="stat-value" id="current-usage">0.00 kW</div>
+        <div class="stat-label">Active Devices Power</div>
     </div>
 
     <!-- Today's Usage -->
@@ -48,8 +48,8 @@
             <div class="card-title">Today's Usage</div>
             <div class="card-icon icon-secondary"><i class="fas fa-chart-line"></i></div>
         </div>
-        <div class="stat-value" id="today-usage">15.8 kWh</div>
-        <div class="stat-label">So Far Today</div>
+        <div class="stat-value" id="today-usage">0.00 kWh</div>
+        <div class="stat-label">Accumulated Today</div>
     </div>
 
     <!-- Monthly Cost -->
@@ -58,18 +58,21 @@
             <div class="card-title">Monthly Cost</div>
             <div class="card-icon icon-success"><span style="font-size:22px;font-weight:bold;">₱</span></div>
         </div>
-        <div class="stat-value" id="monthly-cost">₱42.50</div>
-        <div class="stat-label">Projected for this month</div>
+        <div class="stat-value" id="monthly-cost">₱0.00</div>
+        <div class="stat-label">Projected based on rate</div>
     </div>
 
-    <!-- Carbon -->
+    <!-- Set Rate per kWh -->
     <div class="card">
         <div class="card-header">
-            <div class="card-title">Carbon Footprint</div>
-            <div class="card-icon icon-warning"><i class="fas fa-leaf"></i></div>
+            <div class="card-title">Rate per kWh</div>
+            <div class="card-icon icon-warning"><i class="fas fa-coins"></i></div>
         </div>
-        <div class="stat-value" id="carbon-footprint">125 kg</div>
-        <div class="stat-label">CO₂ emissions this month</div>
+        <div style="margin-top: 10px; display: flex; gap: 8px; align-items: center;">
+            <input type="number" id="quick-rate-input" class="form-control" step="0.01" min="0.01" value="12.50" style="font-size: 1.1rem; font-weight: bold;">
+            <button class="btn btn-primary" id="quick-save-rate" style="padding: 10px 15px;"><i class="fas fa-check"></i></button>
+        </div>
+        <div class="stat-label" style="margin-top: 8px;">Click to modify electricity tariff</div>
     </div>
 
     <!-- Efficiency Score -->
@@ -88,7 +91,7 @@
             <div class="card-title">Highest Consumer</div>
             <div class="card-icon icon-danger" style="color: #e74c3c;"><i class="fas fa-arrow-trend-up"></i></div>
         </div>
-        <div class="stat-value" id="highest-device" style="font-size: 1.2rem;">Loading...</div>
+        <div class="stat-value" id="highest-device" style="font-size: 1.2rem;">None</div>
         <div class="stat-label">Monitor closely</div>
     </div>
     
@@ -98,33 +101,8 @@
             <div class="card-title">Lowest Consumer</div>
             <div class="card-icon icon-success"><i class="fas fa-arrow-trend-down"></i></div>
         </div>
-        <div class="stat-value" id="lowest-device" style="font-size: 1.2rem;">Loading...</div>
+        <div class="stat-value" id="lowest-device" style="font-size: 1.2rem;">None</div>
         <div class="stat-label">Most efficient device</div>
-    </div>
-
-    <!-- Average Usage -->
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Average Usage</div>
-            <div class="card-icon icon-secondary"><i class="fas fa-calculator"></i></div>
-        </div>
-        <div class="stat-value" id="average-usage">-- kWh</div>
-        <div class="stat-label">Per active device</div>
-    </div>
-</div>
-
-<!-- Smart Recommendations -->
-<div class="recommendations-container" style="margin: 20px 0;">
-    <div class="card" style="width: 100%;">
-        <div class="card-header">
-            <div class="card-title">Smart Recommendations</div>
-            <div class="card-icon icon-warning"><i class="fas fa-lightbulb"></i></div>
-        </div>
-        <div style="padding: 15px 20px;">
-            <ul id="recommendations" style="padding-left: 20px; line-height: 1.8; color: #555;">
-                <li>Analyzing system data to generate efficiency tips...</li>
-            </ul>
-        </div>
     </div>
 </div>
 
@@ -214,15 +192,11 @@
         <form id="settings-form">
             <div class="form-group">
                 <label class="form-label" for="energy-rate">Energy Rate (₱/kWh)</label>
-                <input type="number" class="form-control" id="energy-rate" step="0.01" min="0.01" value="0.15" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="carbon-intensity">Carbon Intensity (gCO₂/kWh)</label>
-                <input type="number" class="form-control" id="carbon-intensity" min="1" value="450" required>
+                <input type="number" class="form-control" id="energy-rate" step="0.01" min="0.01" value="12.50" required>
             </div>
             <div class="form-group">
                 <label class="form-label" for="budget-alert">Monthly Budget Alert (₱)</label>
-                <input type="number" class="form-control" id="budget-alert" min="1" value="100" required>
+                <input type="number" class="form-control" id="budget-alert" min="1" value="5000" required>
             </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-outline close-modal">Cancel</button>
