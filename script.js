@@ -259,20 +259,22 @@ class EnergyMonitor {
         this.showNotification("Device added successfully!", "success");
     }
 
-    handleSettings() {
-        this.settings.energyRate = Number(Utils.byId("energy-rate").value);
-        this.settings.monthlyBudget = Number(Utils.byId("budget-alert").value);
-        StorageManager.saveSettings(this.settings);
-        
-        const quickInput = Utils.byId("quick-rate-input");
-        if (quickInput) quickInput.value = this.settings.energyRate;
+const quickSaveRate = e.target.closest("#quick-save-rate");
+            if (quickSaveRate) {
+                const inputVal = Number(Utils.byId("quick-rate-input").value);
+                if (inputVal > 0) {
+                    this.settings.energyRate = inputVal;
+                    StorageManager.saveSettings(this.settings);
+                    
+                    // Sync the settings modal input as well
+                    const settingsRateInput = Utils.byId("energy-rate");
+                    if (settingsRateInput) settingsRateInput.value = this.settings.energyRate;
 
-        const modal = Utils.byId("settings-modal");
-        if (modal) modal.style.display = "none";
-
-        this.refreshDashboard();
-        this.showNotification("Settings updated successfully!", "success");
-    }
+                    this.refreshDashboard();
+                    this.showNotification("Energy rate updated successfully!", "success");
+                }
+                return;
+            }
 
     renderDevices() {
         if (!this.deviceContainer) return;
