@@ -8,7 +8,7 @@ const APP_CONFIG = {
     storageKey: "energy-monitor-data-v3",
     settingsKey: "energy-monitor-settings-v3",
     statsInterval: 1000,
-    version: "3.0.5"
+    version: "3.0.6"
 };
 
 const Utils = {
@@ -23,15 +23,15 @@ const Utils = {
     }
 };
 
-const DEFAULT_DEVICES = [
+const FACTORY_RESET_DEVICES = [
     {
         id: Utils.generateId(),
         name: "Refrigerator",
         type: "appliance",
         power: 150,
-        status: true,
-        usage: 3.2,
-        runtimeSeconds: 86400
+        status: false,
+        usage: 0.0,
+        runtimeSeconds: 0
     },
     {
         id: Utils.generateId(),
@@ -47,18 +47,18 @@ const DEFAULT_DEVICES = [
         name: "AC Unit",
         type: "heating",
         power: 1500,
-        status: true,
-        usage: 8.7,
-        runtimeSeconds: 19800
+        status: false,
+        usage: 0.0,
+        runtimeSeconds: 0
     },
     {
         id: Utils.generateId(),
         name: "Kitchen Lights",
         type: "lighting",
         power: 60,
-        status: true,
-        usage: 1.1,
-        runtimeSeconds: 10800
+        status: false,
+        usage: 0.0,
+        runtimeSeconds: 0
     }
 ];
 
@@ -71,8 +71,8 @@ class StorageManager {
     static loadDevices() {
         const data = localStorage.getItem(APP_CONFIG.storageKey);
         if (!data) {
-            this.saveDevices(DEFAULT_DEVICES);
-            return [...DEFAULT_DEVICES];
+            this.saveDevices(FACTORY_RESET_DEVICES);
+            return [...FACTORY_RESET_DEVICES];
         }
         try {
             const parsed = JSON.parse(data);
@@ -81,7 +81,7 @@ class StorageManager {
                 runtimeSeconds: d.runtimeSeconds !== undefined ? d.runtimeSeconds : (d.runtimeHours ? d.runtimeHours * 3600 : 0)
             }));
         } catch (err) {
-            return [...DEFAULT_DEVICES];
+            return [...FACTORY_RESET_DEVICES];
         }
     }
 
@@ -273,7 +273,7 @@ class EnergyMonitor {
             name,
             type,
             power,
-            status: true,
+            status: false,
             usage: 0.0,
             runtimeSeconds: 0
         };
@@ -481,7 +481,7 @@ class EnergyMonitor {
                 labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
                 datasets: [{
                     label: "Today's Consumption (kWh)",
-                    data: Array.from({ length: 24 }, () => 1.0),
+                    data: Array.from({ length: 24 }, () => 0.0),
                     borderWidth: 2,
                     tension: 0.4,
                     fill: true,
@@ -508,7 +508,7 @@ class EnergyMonitor {
         let labels = [];
         let dataValues = [];
         let labelText = "";
-        const totalUsage = this.calculateDailyUsage() || 1.0;
+        const totalUsage = this.calculateDailyUsage();
 
         if (this.currentPeriod === "day" || this.currentPeriod === "today") {
             labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
@@ -516,11 +516,11 @@ class EnergyMonitor {
             labelText = "Today's Consumption (kWh)";
         } else if (this.currentPeriod === "week") {
             labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-            dataValues = labels.map(() => Number((totalUsage * 0.8).toFixed(2)));
+            dataValues = labels.map(() => 0.0);
             labelText = "This Week's Consumption (kWh)";
         } else if (this.currentPeriod === "month") {
             labels = ["Week 1", "Week 2", "Week 3", "Week 4"];
-            dataValues = labels.map(() => Number((totalUsage * 5).toFixed(2)));
+            dataValues = labels.map(() => 0.0);
             labelText = "This Month's Consumption (kWh)";
         }
 
@@ -564,15 +564,16 @@ class EnergyMonitor {
     }
 
     resetApplication() {
-        if (!confirm("Reset all settings and devices to factory defaults?")) return;
+        if (!confirm("Are you sure you want to factory reset? All devices will be turned off and usage/costs will reset to 0.")) return;
         localStorage.removeItem(APP_CONFIG.storageKey);
         localStorage.removeItem(APP_CONFIG.settingsKey);
-        this.devices = [...DEFAULT_DEVICES];
+        this.devices = [...FACTORY_RESET_DEVICES];
         this.settings = { ...DEFAULT_SETTINGS };
         this.refreshDashboard();
         this.renderDevices();
         if (this.deviceChart) this.updateDeviceChart();
-        this.showNotification("Application reset successfully.", "warning");
+        if (this.consumptionChart) this.updateConsumptionChartPeriod();
+        this.showNotification("Factory reset complete. Everything is set to zero.", "warning");
     }
 
     start() {
@@ -599,7 +600,6 @@ window.exportEnergyData = () => {
     dlAnchor.remove();
 };
 window.backupEnergyData = () => {
-    // Organized, non-technical, self-explanatory export format with human-readable labels
     const rawDevices = window.app?.devices || [];
     const humanReadableDevices = rawDevices.map(d => {
         const totalSecs = d.runtimeSeconds || 0;
