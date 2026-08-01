@@ -30,7 +30,8 @@ const DEFAULT_DEVICES = [
         type: "appliance",
         power: 150,
         status: true,
-        usage: 3.2
+        usage: 3.2,
+        runtimeHours: 24.0
     },
     {
         id: Utils.generateId(),
@@ -38,7 +39,8 @@ const DEFAULT_DEVICES = [
         type: "electronics",
         power: 120,
         status: false,
-        usage: 0.0
+        usage: 0.0,
+        runtimeHours: 0.0
     },
     {
         id: Utils.generateId(),
@@ -46,7 +48,8 @@ const DEFAULT_DEVICES = [
         type: "heating",
         power: 1500,
         status: true,
-        usage: 8.7
+        usage: 8.7,
+        runtimeHours: 5.5
     },
     {
         id: Utils.generateId(),
@@ -54,7 +57,8 @@ const DEFAULT_DEVICES = [
         type: "lighting",
         power: 60,
         status: true,
-        usage: 1.1
+        usage: 1.1,
+        runtimeHours: 3.0
     }
 ];
 
@@ -114,7 +118,6 @@ class EnergyMonitor {
     }
 
     bindEvents() {
-        // Universal click handler for buttons and modals
         document.addEventListener("click", (e) => {
             const settingsBtn = e.target.closest("#settings-btn");
             if (settingsBtn) {
@@ -140,6 +143,10 @@ class EnergyMonitor {
                 if (inputVal > 0) {
                     this.settings.energyRate = inputVal;
                     StorageManager.saveSettings(this.settings);
+                    
+                    const settingsRateInput = Utils.byId("energy-rate");
+                    if (settingsRateInput) settingsRateInput.value = this.settings.energyRate;
+
                     this.refreshDashboard();
                     this.showNotification("Energy rate updated successfully!", "success");
                 }
@@ -165,7 +172,6 @@ class EnergyMonitor {
             }
         });
 
-        // Change handler for checkboxes (toggles) and dropdown filters
         document.addEventListener("change", (e) => {
             if (e.target.classList.contains("device-toggle")) {
                 this.toggleDevice(e.target.dataset.id, e.target.checked);
@@ -177,7 +183,6 @@ class EnergyMonitor {
             }
         });
 
-        // Form bindings
         const addForm = Utils.byId("add-device-form");
         if (addForm) {
             addForm.addEventListener("submit", (e) => {
@@ -200,7 +205,8 @@ class EnergyMonitor {
         if (!device) return;
         device.status = isChecked;
         if (!device.status) {
-            device.usage = 0; // Reset active session usage if turned off
+            device.usage = 0;
+            device.runtimeHours = 0;
         }
         StorageManager.saveDevices(this.devices);
         this.refreshDashboard();
@@ -245,7 +251,8 @@ class EnergyMonitor {
             type,
             power,
             status: true,
-            usage: 1.0
+            usage: 1.0,
+            runtimeHours: 0.0
         };
         this.devices.push(newDev);
         StorageManager.saveDevices(this.devices);
@@ -260,8 +267,16 @@ class EnergyMonitor {
     }
 
     handleSettings() {
-        this.settings.energyRate = Number(Utils.byId("energy-rate").value);
-        this.settings.monthlyBudget = Number(Utils.byId("budget-alert").value);
+        const newRate = Number(Utils.byId("energy-rate").value);
+        const newBudget = Number(Utils.byId("budget-alert").value);
+        
+        if (newRate > 0) {
+            this.settings.energyRate = newRate;
+        }
+        if (newBudget > 0) {
+            this.settings.monthlyBudget = newBudget;
+        }
+
         StorageManager.saveSettings(this.settings);
         
         const quickInput = Utils.byId("quick-rate-input");
@@ -291,6 +306,11 @@ class EnergyMonitor {
         }
 
         displayList.forEach(device => {
+            const totalMins = Math.floor(device.runtimeHours * 60);
+            const hrs = Math.floor(totalMins / 60);
+            const mins = totalMins % 60;
+            const timeString = device.status ? `${hrs}h ${mins}m active` : `Inactive`;
+
             const card = document.createElement("div");
             card.className = "device-card";
             card.innerHTML = `
@@ -300,7 +320,7 @@ class EnergyMonitor {
                 <div class="device-info">
                     <div class="device-name">${device.name}</div>
                     <div class="device-status">
-                        ${device.status ? '<span style="color:var(--success); font-weight:600;">Active</span>' : '<span style="color:var(--gray);">Inactive</span>'} • ${device.power}W
+                        ${device.status ? '<span style="color:var(--success); font-weight:600;"><i class="fas fa-circle" style="font-size:8px;"></i> Active</span>' : '<span style="color:var(--gray);">Inactive</span>'} • ${device.power}W | <i class="fas fa-clock"></i> ${timeString}
                     </div>
                 </div>
                 <div class="device-power">${device.usage.toFixed(2)} kWh</div>
@@ -412,13 +432,16 @@ class EnergyMonitor {
     }
 
     simulateRealtimeUsage() {
+        const hoursPassed = APP_CONFIG.statsInterval / 3600000;
         this.devices.forEach(device => {
             if (!device.status) return;
-            const increment = (device.power / 1000) * (APP_CONFIG.statsInterval / 3600000);
+            const increment = (device.power / 1000) * hoursPassed;
             device.usage += increment;
+            device.runtimeHours += hoursPassed;
         });
         StorageManager.saveDevices(this.devices);
         this.refreshDashboard();
+        this.renderDevices();
         if (this.deviceChart) this.updateDeviceChart();
     }
 
@@ -522,14 +545,21 @@ window.exportEnergyData = () => {
     dlAnchor.remove();
 };
 window.backupEnergyData = () => {
-    const backup = { devices: window.app?.devices, settings: window.app?.settings };
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
+    const backup = {
+        app: "Energy Monitor",
+        version: APP_CONFIG.version,
+        timestamp: new Date().toLocaleString(),
+        settings: window.app?.settings,
+        devices: window.app?.devices
+    };
+    const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
     const dlAnchor = document.createElement('a');
     dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", "energy_monitor_backup.json");
+    dlAnchor.setAttribute("download", "energy_monitor_backup.txt");
     document.body.appendChild(dlAnchor);
     dlAnchor.click();
     dlAnchor.remove();
+    window.app?.showNotification("Backup saved as a text file for Android!", "success");
 };
 window.toggleEnergyTheme = () => {
     const current = document.documentElement.getAttribute("data-theme") || "light";
