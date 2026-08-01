@@ -134,16 +134,28 @@ class EnergyMonitor {
                 return;
             }
 
-            const quickSaveRate = e.target.closest("#quick-save-rate");
-            if (quickSaveRate) {
-                const inputVal = Number(Utils.byId("quick-rate-input").value);
-                if (inputVal > 0) {
-                    this.settings.energyRate = inputVal;
-                    StorageManager.saveSettings(this.settings);
-                    this.refreshDashboard();
-                    this.showNotification("Energy rate updated successfully!", "success");
-                }
-                return;
+            handleSettings() {
+        const newRate = Number(Utils.byId("energy-rate").value);
+        const newBudget = Number(Utils.byId("budget-alert").value);
+        
+        if (newRate > 0) {
+            this.settings.energyRate = newRate;
+        }
+        if (newBudget > 0) {
+            this.settings.monthlyBudget = newBudget;
+        }
+
+        StorageManager.saveSettings(this.settings);
+        
+        // Sync back to the quick input card on the dashboard
+        const quickInput = Utils.byId("quick-rate-input");
+        if (quickInput) quickInput.value = this.settings.energyRate;
+
+        const modal = Utils.byId("settings-modal");
+        if (modal) modal.style.display = "none";
+
+        this.refreshDashboard();
+        this.showNotification("Settings updated successfully!", "success");
             }
 
             const deleteBtn = e.target.closest(".delete-device");
