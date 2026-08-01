@@ -7,8 +7,8 @@
 const APP_CONFIG = {
     storageKey: "energy-monitor-data-v3",
     settingsKey: "energy-monitor-settings-v3",
-    statsInterval: 5000,
-    version: "3.0.0"
+    statsInterval: 1000,
+    version: "3.0.2"
 };
 
 const Utils = {
@@ -31,7 +31,7 @@ const DEFAULT_DEVICES = [
         power: 150,
         status: true,
         usage: 3.2,
-        runtimeHours: 24.0
+        runtimeSeconds: 86400
     },
     {
         id: Utils.generateId(),
@@ -40,7 +40,7 @@ const DEFAULT_DEVICES = [
         power: 120,
         status: false,
         usage: 0.0,
-        runtimeHours: 0.0
+        runtimeSeconds: 0
     },
     {
         id: Utils.generateId(),
@@ -49,7 +49,7 @@ const DEFAULT_DEVICES = [
         power: 1500,
         status: true,
         usage: 8.7,
-        runtimeHours: 5.5
+        runtimeSeconds: 19800
     },
     {
         id: Utils.generateId(),
@@ -58,7 +58,7 @@ const DEFAULT_DEVICES = [
         power: 60,
         status: true,
         usage: 1.1,
-        runtimeHours: 3.0
+        runtimeSeconds: 10800
     }
 ];
 
@@ -75,7 +75,11 @@ class StorageManager {
             return [...DEFAULT_DEVICES];
         }
         try {
-            return JSON.parse(data);
+            const parsed = JSON.parse(data);
+            return parsed.map(d => ({
+                ...d,
+                runtimeSeconds: d.runtimeSeconds !== undefined ? d.runtimeSeconds : (d.runtimeHours ? d.runtimeHours * 3600 : 0)
+            }));
         } catch (err) {
             return [...DEFAULT_DEVICES];
         }
@@ -109,7 +113,6 @@ class EnergyMonitor {
         this.settings = StorageManager.loadSettings();
         this.consumptionChart = null;
         this.deviceChart = null;
-        this.currentPeriod = "day";
         this.filterMode = "all";
     }
 
@@ -203,11 +206,11 @@ class EnergyMonitor {
     toggleDevice(id, isChecked) {
         const device = this.devices.find(d => d.id === id);
         if (!device) return;
+        
+        // Only change status. We DO NOT wipe usage or runtimeSeconds anymore 
+        // so that turning off a device preserves accumulated history.
         device.status = isChecked;
-        if (!device.status) {
-            device.usage = 0;
-            device.runtimeHours = 0;
-        }
+        
         StorageManager.saveDevices(this.devices);
         this.refreshDashboard();
         this.renderDevices();
@@ -251,8 +254,8 @@ class EnergyMonitor {
             type,
             power,
             status: true,
-            usage: 1.0,
-            runtimeHours: 0.0
+            usage: 0.0,
+            runtimeSeconds: 0
         };
         this.devices.push(newDev);
         StorageManager.saveDevices(this.devices);
@@ -306,10 +309,14 @@ class EnergyMonitor {
         }
 
         displayList.forEach(device => {
-            const totalMins = Math.floor(device.runtimeHours * 60);
-            const hrs = Math.floor(totalMins / 60);
-            const mins = totalMins % 60;
-            const timeString = device.status ? `${hrs}h ${mins}m active` : `Inactive`;
+            const totalSecs = device.runtimeSeconds || 0;
+            const hrs = Math.floor(totalSecs / 3600);
+            const mins = Math.floor((totalSecs % 3600) / 60);
+            const secs = totalSecs % 60;
+            
+            const timeString = device.status 
+                ? `${hrs}h ${mins}m ${secs}s active` 
+                : `${hrs}h ${mins}m (Paused)`;
 
             const card = document.createElement("div");
             card.className = "device-card";
@@ -323,7 +330,7 @@ class EnergyMonitor {
                         ${device.status ? '<span style="color:var(--success); font-weight:600;"><i class="fas fa-circle" style="font-size:8px;"></i> Active</span>' : '<span style="color:var(--gray);">Inactive</span>'} • ${device.power}W | <i class="fas fa-clock"></i> ${timeString}
                     </div>
                 </div>
-                <div class="device-power">${device.usage.toFixed(2)} kWh</div>
+                <div class="device-power">${device.usage.toFixed(4)} kWh</div>
                 <div class="device-actions">
                     <label class="toggle-switch">
                         <input type="checkbox" class="device-toggle" data-id="${device.id}" ${device.status ? "checked" : ""}>
@@ -362,15 +369,15 @@ class EnergyMonitor {
     }
 
     calculateCurrentPower() {
+        // Only active devices contribute to current power usage (kW)
         return this.devices
             .filter(device => device.status)
             .reduce((sum, device) => sum + device.power, 0);
     }
 
     calculateDailyUsage() {
-        return this.devices
-            .filter(device => device.status)
-            .reduce((sum, device) => sum + device.usage, 0);
+        // Accumulates total usage across all devices regardless of current toggle status
+        return this.devices.reduce((sum, device) => sum + device.usage, 0);
     }
 
     calculateMonthlyCost() {
@@ -386,7 +393,7 @@ class EnergyMonitor {
         if (currentUsageEl) currentUsageEl.textContent = (powerW / 1000).toFixed(2) + " kW";
 
         const todayUsageEl = Utils.byId("today-usage");
-        if (todayUsageEl) todayUsageEl.textContent = usageKwh.toFixed(2) + " kWh";
+        if (todayUsageEl) todayUsageEl.textContent = usageKwh.toFixed(3) + " kWh";
 
         const costEl = Utils.byId("monthly-cost");
         if (costEl) costEl.textContent = Utils.currency(monthlyCost);
@@ -401,18 +408,19 @@ class EnergyMonitor {
     }
 
     updateAnalytics() {
-        const activeDevices = this.devices.filter(d => d.status);
+        // Highest and lowest calculations consider all devices or can fall back gracefully
+        const targetDevices = this.devices.length > 0 ? this.devices : [];
         const highestCard = Utils.byId("highest-device");
         const lowestCard = Utils.byId("lowest-device");
 
-        if (activeDevices.length === 0) {
-            if (highestCard) highestCard.textContent = "No active devices";
-            if (lowestCard) lowestCard.textContent = "No active devices";
+        if (targetDevices.length === 0) {
+            if (highestCard) highestCard.textContent = "None";
+            if (lowestCard) lowestCard.textContent = "None";
             return;
         }
 
-        const highest = activeDevices.reduce((max, d) => (d.power > max.power ? d : max));
-        const lowest = activeDevices.reduce((min, d) => (d.power < min.power ? d : min));
+        const highest = targetDevices.reduce((max, d) => (d.power > max.power ? d : max));
+        const lowest = targetDevices.reduce((min, d) => (d.power < min.power ? d : min));
 
         if (highestCard) highestCard.textContent = `${highest.name} (${highest.power}W)`;
         if (lowestCard) lowestCard.textContent = `${lowest.name} (${lowest.power}W)`;
@@ -434,10 +442,10 @@ class EnergyMonitor {
     simulateRealtimeUsage() {
         const hoursPassed = APP_CONFIG.statsInterval / 3600000;
         this.devices.forEach(device => {
-            if (!device.status) return;
+            if (!device.status) return; // Inactive devices do not accumulate usage or runtime
             const increment = (device.power / 1000) * hoursPassed;
             device.usage += increment;
-            device.runtimeHours += hoursPassed;
+            device.runtimeSeconds = (device.runtimeSeconds || 0) + 1;
         });
         StorageManager.saveDevices(this.devices);
         this.refreshDashboard();
