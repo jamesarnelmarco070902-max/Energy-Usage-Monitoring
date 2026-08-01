@@ -234,22 +234,29 @@ class EnergyMonitor {
         if (this.deviceChart) this.updateDeviceChart();
     }
 
-    filterDevices(type) {
-        if (type === "all") {
+   filterDevices(filterValue) {
+        if (filterValue === "all") {
             this.renderDevices();
             return;
         }
-        this.deviceContainer.innerHTML = "";
-        this.devices
-            .filter(device => device.type === type)
-            .forEach(device => {
-                const card = document.createElement("div");
-                card.className = "device-card";
-                card.innerHTML = `<strong>${device.name}</strong><br>${device.power}W`;
-                this.deviceContainer.appendChild(card);
-            });
-    }
 
+        // Temporarily store the original devices array
+        const allDevices = this.devices;
+        
+        // Filter based on the HTML dropdown values
+        if (filterValue === "active") {
+            this.devices = allDevices.filter(device => device.status === true);
+        } else if (filterValue === "high-usage") {
+            // Let's define "high usage" as anything over 5 kWh
+            this.devices = allDevices.filter(device => device.usage >= 5.0);
+        }
+
+        // Use the main render method so we keep our toggle/edit/delete buttons
+        this.renderDevices();
+
+        // Restore the original array so we don't lose our data!
+        this.devices = allDevices;
+    }
     // ---------- Device Rendering ----------
 
     renderDevices() {
