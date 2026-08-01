@@ -8,7 +8,7 @@ const APP_CONFIG = {
     storageKey: "energy-monitor-data-v3",
     settingsKey: "energy-monitor-settings-v3",
     statsInterval: 1000,
-    version: "3.0.3"
+    version: "3.0.4"
 };
 
 const Utils = {
@@ -114,7 +114,7 @@ class EnergyMonitor {
         this.consumptionChart = null;
         this.deviceChart = null;
         this.filterMode = "all";
-        this.currentPeriod = "day"; // Tracks active chart period
+        this.currentPeriod = "day";
     }
 
     cacheDOM() {
@@ -157,12 +157,28 @@ class EnergyMonitor {
                 return;
             }
 
-            // Chart Period Filter Actions (Today, This Week, This Month)
-            const chartAction = e.target.closest(".chart-action");
+            // Universal binding for chart period buttons regardless of class names used in HTML
+            const chartAction = e.target.closest(".chart-action") || 
+                                (e.target.tagName === "BUTTON" && ["today", "week", "month", "day", "this week", "this month"].includes(e.target.textContent.toLowerCase().trim()) ? e.target : null);
+            
             if (chartAction) {
-                document.querySelectorAll(".chart-action").forEach(el => el.classList.remove("active"));
+                // Find period type based on dataset or text content fallback
+                let periodVal = chartAction.dataset.period;
+                if (!periodVal) {
+                    const txt = chartAction.textContent.toLowerCase();
+                    if (txt.includes("week")) periodVal = "week";
+                    else if (txt.includes("month")) periodVal = "month";
+                    else periodVal = "day";
+                }
+
+                // Update active states on buttons
+                const parentContainer = chartAction.parentElement;
+                if (parentContainer) {
+                    parentContainer.querySelectorAll("button").forEach(btn => btn.classList.remove("active"));
+                }
                 chartAction.classList.add("active");
-                this.currentPeriod = chartAction.dataset.period;
+
+                this.currentPeriod = periodVal;
                 this.updateConsumptionChartPeriod();
                 return;
             }
@@ -468,7 +484,7 @@ class EnergyMonitor {
                 labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
                 datasets: [{
                     label: "Today's Consumption (kWh)",
-                    data: [1.2, 1.0, 0.9, 0.8, 0.8, 0.9, 1.1, 1.5, 2.0, 2.5, 2.7, 2.6, 2.4, 2.3, 2.2, 2.0, 1.9, 2.1, 2.5, 2.8, 2.6, 2.2, 1.8, 1.4],
+                    data: Array.from({ length: 24 }, () => 1.0),
                     borderWidth: 2,
                     tension: 0.4,
                     fill: true,
@@ -485,6 +501,7 @@ class EnergyMonitor {
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
         });
 
+        this.updateConsumptionChartPeriod();
         this.updateDeviceChart();
     }
 
@@ -494,20 +511,19 @@ class EnergyMonitor {
         let labels = [];
         let dataValues = [];
         let labelText = "";
+        const totalUsage = this.calculateDailyUsage() || 1.0;
 
-        const totalUsage = this.calculateDailyUsage();
-
-        if (this.currentPeriod === "day") {
+        if (this.currentPeriod === "day" || this.currentPeriod === "today") {
             labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-            dataValues = Array.from({ length: 24 }, () => Number((totalUsage / 24 + Math.random() * 0.2).toFixed(2)));
+            dataValues = Array.from({ length: 24 }, () => Number((totalUsage / 24).toFixed(2)));
             labelText = "Today's Consumption (kWh)";
         } else if (this.currentPeriod === "week") {
             labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-            dataValues = labels.map(() => Number((totalUsage * (0.8 + Math.random() * 0.4)).toFixed(2)));
+            dataValues = labels.map(() => Number((totalUsage * 0.8).toFixed(2)));
             labelText = "This Week's Consumption (kWh)";
         } else if (this.currentPeriod === "month") {
             labels = ["Week 1", "Week 2", "Week 3", "Week 4"];
-            dataValues = labels.map(() => Number((totalUsage * 7 * (0.9 + Math.random() * 0.3)).toFixed(2)));
+            dataValues = labels.map(() => Number((totalUsage * 5).toFixed(2)));
             labelText = "This Month's Consumption (kWh)";
         }
 
