@@ -5,7 +5,7 @@
 "use strict";
 
 /* ==========================================================
-   Configuration
+   Configuration & Utilities
    ========================================================== */
 
 const APP_CONFIG = {
@@ -15,13 +15,37 @@ const APP_CONFIG = {
     version: "2.0.0"
 };
 
+const Utils = {
+    generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substring(2);
+    },
+    currency(value) {
+        return `₱${Number(value).toFixed(2)}`;
+    },
+    random(min, max) {
+        return Math.random() * (max - min) + min;
+    },
+    clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    },
+    formatPower(power) {
+        return `${power} W`;
+    },
+    formatUsage(value) {
+        return `${Number(value).toFixed(2)} kWh`;
+    },
+    byId(id) {
+        return document.getElementById(id);
+    }
+};
+
 /* ==========================================================
    Default Data
    ========================================================== */
 
 const DEFAULT_DEVICES = [
     {
-        id: crypto.randomUUID(),
+        id: Utils.generateId(),
         name: "Refrigerator",
         type: "appliance",
         power: 150,
@@ -29,7 +53,7 @@ const DEFAULT_DEVICES = [
         usage: 3.2
     },
     {
-        id: crypto.randomUUID(),
+        id: Utils.generateId(),
         name: "Living Room TV",
         type: "electronics",
         power: 120,
@@ -37,7 +61,7 @@ const DEFAULT_DEVICES = [
         usage: 1.5
     },
     {
-        id: crypto.randomUUID(),
+        id: Utils.generateId(),
         name: "AC Unit",
         type: "heating",
         power: 1500,
@@ -45,7 +69,7 @@ const DEFAULT_DEVICES = [
         usage: 8.7
     },
     {
-        id: crypto.randomUUID(),
+        id: Utils.generateId(),
         name: "Kitchen Lights",
         type: "lighting",
         power: 60,
@@ -104,31 +128,6 @@ class StorageManager {
 }
 
 /* ==========================================================
-   Utility Functions
-   ========================================================== */
-
-const Utils = {
-    currency(value) {
-        return `₱${Number(value).toFixed(2)}`;
-    },
-    random(min, max) {
-        return Math.random() * (max - min) + min;
-    },
-    clamp(value, min, max) {
-        return Math.min(Math.max(value, min), max);
-    },
-    formatPower(power) {
-        return `${power} W`;
-    },
-    formatUsage(value) {
-        return `${Number(value).toFixed(2)} kWh`;
-    },
-    byId(id) {
-        return document.getElementById(id);
-    }
-};
-
-/* ==========================================================
    Main Application
    ========================================================== */
 
@@ -145,8 +144,6 @@ class EnergyMonitor {
         this.logs = [];
     }
 
-    // ---------- DOM & Event Binding ----------
-
     cacheDOM() {
         this.deviceContainer = Utils.byId("devices-container");
         this.currentUsage = Utils.byId("current-usage");
@@ -158,9 +155,13 @@ class EnergyMonitor {
         document.addEventListener("change", this.handleChange.bind(this));
     }
 
-    // ---------- Click / Change Handlers ----------
-
     handleClick(e) {
+        const settingsBtn = e.target.closest("#settings-btn");
+        if (settingsBtn) {
+            Utils.byId("settings-modal").style.display = "flex";
+            return;
+        }
+
         const addBtn = e.target.closest("#add-device-btn");
         if (addBtn) {
             Utils.byId("add-device-modal").style.display = "flex";
@@ -182,9 +183,7 @@ class EnergyMonitor {
         }
 
         if (e.target.classList.contains("close-modal")) {
-            document
-                .querySelectorAll(".modal")
-                .forEach(modal => (modal.style.display = "none"));
+            document.querySelectorAll(".modal").forEach(modal => (modal.style.display = "none"));
         }
     }
 
@@ -197,8 +196,6 @@ class EnergyMonitor {
             this.filterDevices(e.target.value);
         }
     }
-
-    // ---------- Device CRUD ----------
 
     toggleDevice(id) {
         const device = this.devices.find(d => d.id === id);
@@ -234,30 +231,20 @@ class EnergyMonitor {
         if (this.deviceChart) this.updateDeviceChart();
     }
 
-   filterDevices(filterValue) {
+    filterDevices(filterValue) {
         if (filterValue === "all") {
             this.renderDevices();
             return;
         }
-
-        // Temporarily store the original devices array
         const allDevices = this.devices;
-        
-        // Filter based on the HTML dropdown values
         if (filterValue === "active") {
             this.devices = allDevices.filter(device => device.status === true);
         } else if (filterValue === "high-usage") {
-            // Let's define "high usage" as anything over 5 kWh
             this.devices = allDevices.filter(device => device.usage >= 5.0);
         }
-
-        // Use the main render method so we keep our toggle/edit/delete buttons
         this.renderDevices();
-
-        // Restore the original array so we don't lose our data!
-        this.devices = allDevices;
+        this.devices = allDevices; 
     }
-    // ---------- Device Rendering ----------
 
     renderDevices() {
         if (!this.deviceContainer) return;
@@ -313,30 +300,6 @@ class EnergyMonitor {
         }
     }
 
-    renderDeviceList(devices) {
-        if (!this.deviceContainer) return;
-        this.deviceContainer.innerHTML = "";
-        devices.forEach(device => {
-            const card = document.createElement("div");
-            card.className = "device-card";
-            card.innerHTML = `
-                <div class="device-icon icon-${this.getDeviceColor(device.type)}">
-                    <i class="fas ${this.getDeviceIcon(device.type)}"></i>
-                </div>
-                <div class="device-info">
-                    <div class="device-name">${device.name}</div>
-                    <div class="device-status">
-                        ${device.status ? "Active" : "Inactive"} • ${device.power}W
-                    </div>
-                </div>
-                <div class="device-power">${device.usage.toFixed(2)} kWh</div>
-            `;
-            this.deviceContainer.appendChild(card);
-        });
-    }
-
-    // ---------- Dashboard ----------
-
     renderDashboard() {
         const power = this.calculateCurrentPower();
         const usage = this.calculateDailyUsage();
@@ -374,8 +337,6 @@ class EnergyMonitor {
         return (this.calculateDailyUsage() * this.settings.carbonIntensity) / 1000;
     }
 
-    // ---------- Realtime Simulation ----------
-
     startRealtimeUpdates() {
         setInterval(() => {
             this.simulateUsage();
@@ -393,8 +354,6 @@ class EnergyMonitor {
         this.updateAnalytics();
         this.updateDeviceChart();
     }
-
-    // ---------- Charts ----------
 
     initCharts() {
         const consumptionCanvas = document.getElementById("consumption-chart");
@@ -503,8 +462,6 @@ class EnergyMonitor {
         this.updateConsumptionChart(this.currentPeriod);
     }
 
-    // ---------- Forms ----------
-
     bindForms() {
         const addForm = document.getElementById("add-device-form");
         if (addForm) addForm.addEventListener("submit", this.handleAddDevice.bind(this));
@@ -523,7 +480,7 @@ class EnergyMonitor {
             return;
         }
         const device = {
-            id: crypto.randomUUID(),
+            id: Utils.generateId(),
             name,
             type,
             power,
@@ -551,39 +508,6 @@ class EnergyMonitor {
         this.renderDashboard();
         alert("Settings saved successfully.");
     }
-
-    // ---------- Search & Sort ----------
-
-    searchDevices(keyword = "") {
-        keyword = keyword.toLowerCase().trim();
-        if (!keyword) {
-            this.renderDevices();
-            return;
-        }
-        const results = this.devices.filter(
-            device => device.name.toLowerCase().includes(keyword) || device.type.toLowerCase().includes(keyword)
-        );
-        this.renderDeviceList(results);
-    }
-
-    sortDevices(method = "name") {
-        switch (method) {
-            case "power":
-                this.devices.sort((a, b) => b.power - a.power);
-                break;
-            case "usage":
-                this.devices.sort((a, b) => b.usage - a.usage);
-                break;
-            case "status":
-                this.devices.sort((a, b) => Number(b.status) - Number(a.status));
-                break;
-            default:
-                this.devices.sort((a, b) => a.name.localeCompare(b.name));
-        }
-        this.renderDevices();
-    }
-
-    // ---------- Analytics ----------
 
     getHighestUsageDevice() {
         if (!this.devices.length) return null;
@@ -616,39 +540,6 @@ class EnergyMonitor {
         if (averageCard) averageCard.textContent = average.toFixed(2) + " kWh";
     }
 
-    getTopConsumers(limit = 5) {
-        return [...this.devices].sort((a, b) => b.usage - a.usage).slice(0, limit);
-    }
-
-    getLeastConsumers(limit = 5) {
-        return [...this.devices].sort((a, b) => a.usage - b.usage).slice(0, limit);
-    }
-
-    getDeviceStatistics() {
-        const stats = {
-            total: this.devices.length,
-            active: 0,
-            inactive: 0,
-            power: {},
-            usage: {}
-        };
-        this.devices.forEach(device => {
-            if (device.status) stats.active++;
-            else stats.inactive++;
-            stats.power[device.name] = device.power;
-            stats.usage[device.name] = Number(device.usage.toFixed(2));
-        });
-        return stats;
-    }
-
-    calculateTrend() {
-        if (!this.history) this.history = this.loadHistory();
-        if (this.history.length < 2) return 0;
-        const latest = this.history[this.history.length - 1];
-        const previous = this.history[this.history.length - 2];
-        return Number((latest.totalUsage - previous.totalUsage).toFixed(2));
-    }
-
     calculateEfficiencyScore() {
         const usage = this.calculateDailyUsage();
         const power = this.calculateCurrentPower();
@@ -659,39 +550,10 @@ class EnergyMonitor {
     }
 
     updateSummaryCards() {
-        const report = this.generateDailyReport();
         const efficiency = this.calculateEfficiencyScore();
-        const trend = this.calculateTrend();
-
         const efficiencyCard = document.getElementById("efficiency-score");
         if (efficiencyCard) efficiencyCard.textContent = efficiency + "%";
-
-        const trendCard = document.getElementById("usage-trend");
-        if (trendCard) trendCard.textContent = trend >= 0 ? "+" + trend.toFixed(2) + " kWh" : trend.toFixed(2) + " kWh";
-
-        const reportCard = document.getElementById("daily-report");
-        if (reportCard) {
-            reportCard.innerHTML = `
-                <strong>${report.activeDevices}</strong> Active Devices<br>
-                <strong>${report.energyUsed.toFixed(2)}</strong> kWh Today
-            `;
-        }
     }
-
-    generateDailyReport() {
-        const active = this.devices.filter(d => d.status);
-        return {
-            date: new Date().toLocaleDateString(),
-            activeDevices: active.length,
-            totalDevices: this.devices.length,
-            currentPower: this.calculateCurrentPower(),
-            energyUsed: this.calculateDailyUsage(),
-            estimatedCost: this.calculateMonthlyCost(),
-            carbon: this.calculateCarbonEmission()
-        };
-    }
-
-    // ---------- Budget & Notifications ----------
 
     checkBudget() {
         const monthlyCost = this.calculateMonthlyCost();
@@ -720,8 +582,6 @@ class EnergyMonitor {
         }, 4000);
     }
 
-    // ---------- Import / Export ----------
-
     exportDevices() {
         const json = JSON.stringify(this.devices, null, 2);
         const blob = new Blob([json], { type: "application/json" });
@@ -729,40 +589,6 @@ class EnergyMonitor {
         const a = document.createElement("a");
         a.href = url;
         a.download = "devices.json";
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    importDevices(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (!Array.isArray(data)) throw new Error();
-                this.devices = data;
-                StorageManager.saveDevices(this.devices);
-                this.refreshUI();
-                this.showNotification("Devices imported successfully.", "success");
-            } catch {
-                this.showNotification("Invalid JSON file.", "danger");
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    exportCSV() {
-        const rows = [];
-        rows.push(["Name", "Type", "Power", "Status", "Usage"]);
-        this.devices.forEach(device => {
-            rows.push([device.name, device.type, device.power, device.status ? "Active" : "Inactive", device.usage]);
-        });
-        const csv = rows.map(row => row.join(",")).join("\n");
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "devices.csv";
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -783,33 +609,10 @@ class EnergyMonitor {
         URL.revokeObjectURL(url);
     }
 
-    restoreBackup(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            try {
-                const backup = JSON.parse(e.target.result);
-                this.devices = backup.devices || [];
-                this.settings = backup.settings || DEFAULT_SETTINGS;
-                this.sync();
-                this.showNotification("Backup restored successfully.", "success");
-            } catch {
-                this.showNotification("Unable to restore backup.", "danger");
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    // ---------- History ----------
-
     loadHistory() {
         const history = localStorage.getItem("energy-history");
         if (!history) return [];
-        try {
-            return JSON.parse(history);
-        } catch {
-            return [];
-        }
+        try { return JSON.parse(history); } catch { return []; }
     }
 
     saveHistory() {
@@ -829,65 +632,25 @@ class EnergyMonitor {
         this.saveHistory();
     }
 
-    // ---------- Scheduling ----------
-
     initializeSchedules() {
         this.schedules = JSON.parse(localStorage.getItem("energy-schedules") || "[]");
     }
 
-    saveSchedules() {
-        localStorage.setItem("energy-schedules", JSON.stringify(this.schedules));
-    }
-
     addSchedule(deviceId, startTime, endTime) {
         this.schedules.push({
-            id: crypto.randomUUID(),
+            id: Utils.generateId(),
             deviceId,
             startTime,
             endTime,
             enabled: true
         });
-        this.saveSchedules();
+        localStorage.setItem("energy-schedules", JSON.stringify(this.schedules));
     }
-
-    removeSchedule(scheduleId) {
-        this.schedules = this.schedules.filter(schedule => schedule.id !== scheduleId);
-        this.saveSchedules();
-    }
-
-    runSchedules() {
-        if (!this.schedules) return;
-        const now = new Date();
-        const current = now.toTimeString().substring(0, 5);
-        this.schedules.forEach(schedule => {
-            if (!schedule.enabled) return;
-            const device = this.devices.find(d => d.id === schedule.deviceId);
-            if (!device) return;
-            if (current >= schedule.startTime && current < schedule.endTime) {
-                device.status = true;
-            } else {
-                device.status = false;
-            }
-        });
-        StorageManager.saveDevices(this.devices);
-    }
-
-    // ---------- Peak Hour & Forecast ----------
 
     isPeakHour() {
         const hour = new Date().getHours();
         return (hour >= 18 && hour <= 22) || (hour >= 7 && hour <= 9);
     }
-
-    forecastMonthlyBill() {
-        return Number((this.calculateDailyUsage() * 30 * this.settings.energyRate).toFixed(2));
-    }
-
-    forecastYearlyBill() {
-        return Number((this.forecastMonthlyBill() * 12).toFixed(2));
-    }
-
-    // ---------- Recommendations ----------
 
     generateRecommendations() {
         const tips = [];
@@ -917,10 +680,7 @@ class EnergyMonitor {
         });
     }
 
-    // ---------- Automation ----------
-
     runAutomation() {
-        this.runSchedules();
         this.checkBudget();
         this.updateRecommendations();
         this.renderDashboard();
@@ -940,8 +700,6 @@ class EnergyMonitor {
         }, APP_CONFIG.statsInterval);
     }
 
-    // ---------- Theme & Preferences ----------
-
     initializeTheme() {
         const savedTheme = localStorage.getItem("energy-theme") || "light";
         document.documentElement.setAttribute("data-theme", savedTheme);
@@ -958,19 +716,13 @@ class EnergyMonitor {
         this.preferences = JSON.parse(localStorage.getItem("energy-preferences") || "{}");
     }
 
-    savePreferences() {
-        localStorage.setItem("energy-preferences", JSON.stringify(this.preferences));
-    }
-
-    // ---------- Logging ----------
-
     initializeLogs() {
         this.logs = JSON.parse(localStorage.getItem("energy-logs") || "[]");
     }
 
     addLog(action, details = "") {
         this.logs.unshift({
-            id: crypto.randomUUID(),
+            id: Utils.generateId(),
             action,
             details,
             timestamp: new Date().toISOString()
@@ -979,65 +731,11 @@ class EnergyMonitor {
         localStorage.setItem("energy-logs", JSON.stringify(this.logs));
     }
 
-    getLogs(limit = 20) {
-        return this.logs.slice(0, limit);
-    }
-
-    // ---------- Utility (debounce, throttle, shortcuts) ----------
-
-    debounce(callback, delay = 300) {
-        let timer;
-        return (...args) => {
-            clearTimeout(timer);
-            timer = setTimeout(() => callback.apply(this, args), delay);
-        };
-    }
-
-    throttle(callback, limit = 200) {
-        let waiting = false;
-        return (...args) => {
-            if (waiting) return;
-            callback.apply(this, args);
-            waiting = true;
-            setTimeout(() => (waiting = false), limit);
-        };
-    }
-
-    registerKeyboardShortcuts() {
-        document.addEventListener("keydown", event => {
-            if (event.ctrlKey && event.key === "s") {
-                event.preventDefault();
-                this.sync();
-                this.showNotification("Data saved.", "success");
-            }
-            if (event.ctrlKey && event.key === "e") {
-                event.preventDefault();
-                this.exportDevices();
-            }
-            if (event.ctrlKey && event.key === "b") {
-                event.preventDefault();
-                this.backupData();
-            }
-            if (event.ctrlKey && event.key === "d") {
-                event.preventDefault();
-                this.toggleTheme();
-            }
-        });
-    }
-
     enableAutoSave() {
         setInterval(() => {
             StorageManager.saveDevices(this.devices);
             StorageManager.saveSettings(this.settings);
-            this.savePreferences();
         }, 30000);
-    }
-
-    refreshUI() {
-        this.renderDevices();
-        this.renderDashboard();
-        this.updateAnalytics();
-        this.updateDeviceChart();
     }
 
     refreshDashboard() {
@@ -1048,53 +746,18 @@ class EnergyMonitor {
         this.updateDeviceChart();
     }
 
-    // ---------- Validation & Safety ----------
-
-    validateDevice(device) {
-        if (!device) return false;
-        if (typeof device.name !== "string") return false;
-        if (!device.name.trim()) return false;
-        if (isNaN(device.power)) return false;
-        if (device.power <= 0) return false;
-        return true;
-    }
-
-    validateSettings(settings) {
-        if (!settings) return false;
-        return !isNaN(settings.energyRate) && !isNaN(settings.carbonIntensity) && !isNaN(settings.monthlyBudget);
-    }
-
     sync() {
         StorageManager.saveDevices(this.devices);
         StorageManager.saveSettings(this.settings);
-        if (this.history) this.saveHistory();
-        if (this.preferences) this.savePreferences();
-        if (this.schedules) this.saveSchedules();
         this.renderDevices();
         this.renderDashboard();
         this.refreshCharts();
-    }
-
-    saveAll() {
-        this.sync();
     }
 
     handleError(error) {
         console.error(error);
         this.addLog("Error", error.message || String(error));
         this.showNotification("An unexpected error occurred.", "danger");
-    }
-
-    resetRuntime() {
-        this.deviceChart = null;
-        this.consumptionChart = null;
-        this.currentPeriod = "day";
-    }
-
-    destroy() {
-        if (this.deviceChart) this.deviceChart.destroy();
-        if (this.consumptionChart) this.consumptionChart.destroy();
-        this.resetRuntime();
     }
 
     resetApplication() {
@@ -1104,8 +767,6 @@ class EnergyMonitor {
         this.sync();
     }
 
-    // ---------- Startup ----------
-
     startup() {
         this.initializeTheme();
         this.loadPreferences();
@@ -1114,7 +775,6 @@ class EnergyMonitor {
         this.history = this.loadHistory();
         this.bindForms();
         this.bindChartButtons();
-        this.registerKeyboardShortcuts();
         this.enableAutoSave();
         this.refreshDashboard();
         this.addLog("Application Started");
@@ -1123,6 +783,7 @@ class EnergyMonitor {
     start() {
         try {
             this.cacheDOM();
+            this.bindEvents(); // Fixed missing listener binding
             this.startup();
             this.initCharts();
             this.renderDevices();
@@ -1161,10 +822,6 @@ window.backupEnergyData = () => {
 window.toggleEnergyTheme = () => {
     if (window.app) window.app.toggleTheme();
 };
-
-/* ==========================================================
-   DOM Ready
-   ========================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
     try {
