@@ -8,7 +8,7 @@ const APP_CONFIG = {
     storageKey: "energy-monitor-data-v3",
     settingsKey: "energy-monitor-settings-v3",
     statsInterval: 1000,
-    version: "3.0.2"
+    version: "3.0.3"
 };
 
 const Utils = {
@@ -114,6 +114,7 @@ class EnergyMonitor {
         this.consumptionChart = null;
         this.deviceChart = null;
         this.filterMode = "all";
+        this.currentPeriod = "day"; // Tracks active chart period
     }
 
     cacheDOM() {
@@ -153,6 +154,16 @@ class EnergyMonitor {
                     this.refreshDashboard();
                     this.showNotification("Energy rate updated successfully!", "success");
                 }
+                return;
+            }
+
+            // Chart Period Filter Actions (Today, This Week, This Month)
+            const chartAction = e.target.closest(".chart-action");
+            if (chartAction) {
+                document.querySelectorAll(".chart-action").forEach(el => el.classList.remove("active"));
+                chartAction.classList.add("active");
+                this.currentPeriod = chartAction.dataset.period;
+                this.updateConsumptionChartPeriod();
                 return;
             }
 
@@ -206,11 +217,7 @@ class EnergyMonitor {
     toggleDevice(id, isChecked) {
         const device = this.devices.find(d => d.id === id);
         if (!device) return;
-        
-        // Only change status. We DO NOT wipe usage or runtimeSeconds anymore 
-        // so that turning off a device preserves accumulated history.
         device.status = isChecked;
-        
         StorageManager.saveDevices(this.devices);
         this.refreshDashboard();
         this.renderDevices();
@@ -369,14 +376,12 @@ class EnergyMonitor {
     }
 
     calculateCurrentPower() {
-        // Only active devices contribute to current power usage (kW)
         return this.devices
             .filter(device => device.status)
             .reduce((sum, device) => sum + device.power, 0);
     }
 
     calculateDailyUsage() {
-        // Accumulates total usage across all devices regardless of current toggle status
         return this.devices.reduce((sum, device) => sum + device.usage, 0);
     }
 
@@ -408,7 +413,6 @@ class EnergyMonitor {
     }
 
     updateAnalytics() {
-        // Highest and lowest calculations consider all devices or can fall back gracefully
         const targetDevices = this.devices.length > 0 ? this.devices : [];
         const highestCard = Utils.byId("highest-device");
         const lowestCard = Utils.byId("lowest-device");
@@ -442,7 +446,7 @@ class EnergyMonitor {
     simulateRealtimeUsage() {
         const hoursPassed = APP_CONFIG.statsInterval / 3600000;
         this.devices.forEach(device => {
-            if (!device.status) return; // Inactive devices do not accumulate usage or runtime
+            if (!device.status) return;
             const increment = (device.power / 1000) * hoursPassed;
             device.usage += increment;
             device.runtimeSeconds = (device.runtimeSeconds || 0) + 1;
@@ -463,7 +467,7 @@ class EnergyMonitor {
             data: {
                 labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
                 datasets: [{
-                    label: "Energy Consumption (kWh)",
+                    label: "Today's Consumption (kWh)",
                     data: [1.2, 1.0, 0.9, 0.8, 0.8, 0.9, 1.1, 1.5, 2.0, 2.5, 2.7, 2.6, 2.4, 2.3, 2.2, 2.0, 1.9, 2.1, 2.5, 2.8, 2.6, 2.2, 1.8, 1.4],
                     borderWidth: 2,
                     tension: 0.4,
@@ -482,6 +486,35 @@ class EnergyMonitor {
         });
 
         this.updateDeviceChart();
+    }
+
+    updateConsumptionChartPeriod() {
+        if (!this.consumptionChart) return;
+
+        let labels = [];
+        let dataValues = [];
+        let labelText = "";
+
+        const totalUsage = this.calculateDailyUsage();
+
+        if (this.currentPeriod === "day") {
+            labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+            dataValues = Array.from({ length: 24 }, () => Number((totalUsage / 24 + Math.random() * 0.2).toFixed(2)));
+            labelText = "Today's Consumption (kWh)";
+        } else if (this.currentPeriod === "week") {
+            labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+            dataValues = labels.map(() => Number((totalUsage * (0.8 + Math.random() * 0.4)).toFixed(2)));
+            labelText = "This Week's Consumption (kWh)";
+        } else if (this.currentPeriod === "month") {
+            labels = ["Week 1", "Week 2", "Week 3", "Week 4"];
+            dataValues = labels.map(() => Number((totalUsage * 7 * (0.9 + Math.random() * 0.3)).toFixed(2)));
+            labelText = "This Month's Consumption (kWh)";
+        }
+
+        this.consumptionChart.data.labels = labels;
+        this.consumptionChart.data.datasets[0].label = labelText;
+        this.consumptionChart.data.datasets[0].data = dataValues;
+        this.consumptionChart.update();
     }
 
     updateDeviceChart() {
